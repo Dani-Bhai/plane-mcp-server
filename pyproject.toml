@@ -1,5 +1,32 @@
 [project]
 name = "plane-work-items-mcp"
-version = "0.1.0"
-description = "Read-only MCP server for Plane work items and comments"
+version = "0.2.0"
+description = "Native read-only MCP server for Plane workspaces"
 requires-python = ">=3.10"
+dependencies = [
+    "mcp==2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "coverage>=7,<8",
+    "mcp[cli]==2.0.0",
+    "pytest>=8,<9",
+]
+
+[project.scripts]
+plane-mcp = "plane_mcp.server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
