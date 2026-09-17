@@ -1,0 +1,5 @@
+[project]
+name = "plane-work-items-mcp"
+version = "0.1.0"
+description = "Read-only MCP server for Plane work items and comments"
+requires-python = ">=3.10"
