@@ -94,7 +94,7 @@ class ClientTest(unittest.TestCase):
         self.assertEqual({"cursor": ["next token"], "per_page": ["2"]}, parse_qs(parsed_url.query))
         self.assertEqual("test-key", request.get_header("X-api-key"))
         self.assertEqual("application/json", request.get_header("Accept"))
-        self.assertEqual("plane-work-items-mcp/0.2.0", request.get_header("User-agent"))
+        self.assertEqual("plane-work-items-mcp/0.3.0", request.get_header("User-agent"))
         self.assertEqual("GET", request.get_method())
         self.assertEqual(4.5, timeout)
 
@@ -162,6 +162,100 @@ class ClientTest(unittest.TestCase):
 
                 with self.assertRaisesRegex(PlaneApiError, expected):
                     PlaneClient(settings(), opener=opener).list_projects()
+
+    def test_v03_read_methods_build_expected_requests(self) -> None:
+        opener = RecordingOpener({"results": []})
+        client = PlaneClient(settings(), opener=opener)
+
+        client.get_project("project/1", expand="members")
+        client.get_work_item("project/1", "work-item/1", fields="id,name")
+        client.search_work_items(
+            "release planning",
+            project_id="project/1",
+            cursor="next",
+            page_size=4,
+            pql='priority = "urgent"',
+        )
+        client.list_project_resources("project/1", "states", cursor="next", page_size=4)
+        client.list_workspace_members(cursor="next", page_size=4)
+
+        paths = [urlparse(request.full_url).path for request, _ in opener.requests]
+        self.assertEqual(
+            [
+                "/api/v1/workspaces/workspace%2Fone/projects/project%2F1/",
+                "/api/v1/workspaces/workspace%2Fone/projects/project%2F1/work-items/work-item%2F1/",
+                "/api/v1/workspaces/workspace%2Fone/work-items/search/",
+                "/api/v1/workspaces/workspace%2Fone/projects/project%2F1/states/",
+                "/api/v1/workspaces/workspace%2Fone/members/",
+            ],
+            paths,
+        )
+        self.assertEqual(
+            {"expand": ["members"]},
+            parse_qs(urlparse(opener.requests[0][0].full_url).query),
+        )
+        self.assertEqual(
+            {
+                "expand": ["module,state,assignees,labels,type,project"],
+                "fields": ["id,name"],
+            },
+            parse_qs(urlparse(opener.requests[1][0].full_url).query),
+        )
+        self.assertEqual(
+            {
+                "cursor": ["next"],
+                "per_page": ["4"],
+                "search": ["release planning"],
+                "project": ["project/1"],
+                "expand": ["module,state,assignees,labels,type,project"],
+                "pql": ['priority = "urgent"'],
+            },
+            parse_qs(urlparse(opener.requests[2][0].full_url).query),
+        )
+
+    def test_work_item_filters_are_forwarded_and_project_resources_are_validated(self) -> None:
+        opener = RecordingOpener({"results": []})
+        client = PlaneClient(settings(), opener=opener)
+
+        client.list_work_items("project/1", pql='priority = "urgent"', fields="id,name")
+
+        self.assertEqual(
+            {
+                "per_page": ["100"],
+                "expand": ["module,state,assignees,labels"],
+                "pql": ['priority = "urgent"'],
+                "fields": ["id,name"],
+            },
+            parse_qs(urlparse(opener.requests[0][0].full_url).query),
+        )
+
+        with self.assertRaisesRegex(ValueError, "resource must be one of"):
+            client.list_project_resources("project/1", "unknown")
+
+    def test_all_project_resource_names_map_to_explicit_plane_paths(self) -> None:
+        opener = RecordingOpener({"results": []})
+        client = PlaneClient(settings(), opener=opener)
+        resources = {
+            "cycles": "cycles",
+            "labels": "labels",
+            "members": "members",
+            "milestones": "milestones",
+            "modules": "modules",
+            "releases": "releases",
+            "states": "states",
+            "work_item_types": "work-item-types",
+        }
+
+        for resource in resources:
+            client.list_project_resources("project/1", resource)
+
+        self.assertEqual(
+            [
+                f"/api/v1/workspaces/workspace%2Fone/projects/project%2F1/{path}/"
+                for path in resources.values()
+            ],
+            [urlparse(request.full_url).path for request, _ in opener.requests],
+        )
 
 
 if __name__ == "__main__":

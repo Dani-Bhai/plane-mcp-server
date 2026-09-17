@@ -10,8 +10,6 @@ dist/
 venv/
 
 # Environment / secrets
-.env
-.env.*
 *.pem
 *.key
 
@@ -21,3 +19,5 @@ venv/
 .ruff_cache/
 .coverage
 htmlcov/
+config.bat
+node_modules
