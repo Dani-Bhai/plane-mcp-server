@@ -1,7 +1,7 @@
 # Plane MCP
 
-Native, read-only MCP server for a self-hosted Plane workspace. It exposes Plane project, module,
-work-item, and comment reads through the official MCP Python SDK.
+Native, read-only MCP server for a self-hosted Plane workspace. It exposes Plane discovery,
+metadata, project, work-item, comment, and context reads through the official MCP Python SDK.
 
 ## Requirements
 
@@ -68,14 +68,34 @@ PLANE_API_KEY = "plane_api_your_key"
 ## Tools
 
 - `list_projects`
+- `resolve_project`
+- `get_project`
 - `list_modules`
+- `list_project_resources`
+- `list_workspace_members`
+- `resolve_project_resource`
 - `list_module_work_items`
+- `get_work_item`
 - `list_work_items`
+- `search_work_items`
 - `list_work_item_comments`
 
-All tools are read-only and idempotent. Project-scoped tools require a project UUID. Use the
-`next_cursor` returned by Plane as the `cursor` argument for the next page. `page_size` must be
-between `1` and `100`.
+All tools are read-only and idempotent. Use `resolve_project` with a project name, identifier, or
+UUID, then use `resolve_project_resource` for states, labels, cycles, modules, milestones, releases,
+members, or work-item types. Project-scoped tools keep the project UUID explicit. Structured
+work-item filters resolve names safely and are compiled to Plane PQL; raw PQL remains available for
+advanced queries. Use the `next_cursor` returned by Plane as the `cursor` argument for the next page.
+`page_size` must be between `1` and `100`.
+
+## Resources
+
+- `plane://workspace` — the configured workspace's project context.
+- `plane://projects/{project_id}` — a project context template.
+- `plane://projects/{project_id}/work-items/{work_item_id}` — a work-item context template.
+
+The resource payloads preserve the Plane response while providing stable, cacheable MCP resource
+URIs. Workspace and project context should be refreshed when project membership or metadata changes;
+work-item context should be refreshed after edits made outside the current read flow.
 
 ## Development
 
@@ -98,12 +118,15 @@ python3 -m coverage report -m --include='src/plane_mcp/*.py'
 
 - `plane_mcp.server` registers typed MCP tools and owns the stdio entry point.
 - `plane_mcp.client` contains the injectable Plane v1 HTTP client and response/error handling.
+- `plane_mcp.resolution` performs bounded, deterministic UUID/identifier/name resolution.
+- `plane_mcp.query` compiles structured work-item filters into PQL.
 - `plane_mcp.config` validates environment configuration and normalizes the API URL.
-- `tests/` covers native MCP discovery/calls, tool validation, configuration, request construction,
-  pagination, and API failure paths.
+- `tests/` covers native MCP discovery/calls, resources, resolution, PQL/filter construction,
+  configuration, request construction, pagination, and API failure paths.
 
-## Migration from v0.1
+## Migration from v0.2
 
-The five tool names and the required `PLANE_*` environment variables are preserved. Replace the
-repository-path command with the installed `plane-mcp` command. The server now uses the official
-MCP SDK for protocol handling; hosts should continue to connect over stdio.
+The v0.2 tool names and required `PLANE_*` environment variables are preserved. Replace the
+repository-path command with the installed `plane-mcp` command. The v0.3 tools add native
+resolution and context reads without changing the existing read-only behavior; hosts should
+continue to connect over stdio.

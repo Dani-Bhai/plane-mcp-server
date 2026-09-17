@@ -4,12 +4,12 @@ This roadmap tracks the work required to turn the current read-only Plane REST a
 
 ## Current baseline
 
-The current release is `v0.1.0`.
+The current release is `v0.3.0`.
 
 It provides:
 
-- A dependency-free, hand-written JSON-RPC/MCP stdio server.
-- Five read-only tools for projects, modules, work items, and comments.
+- A native, installable MCP stdio server built on the official MCP Python SDK.
+- Read-only discovery, resolution, metadata, project, work-item, comment, and context operations.
 - Environment-based configuration for a self-hosted Plane instance.
 - Basic pagination and URL normalization.
 
@@ -20,7 +20,7 @@ The baseline is intentionally preserved while the native implementation is built
 | Version | Focus | Status | Depends on |
 | --- | --- | --- | --- |
 | [`v0.2`](docs/v0.2-native-read-only-foundation.md) | Native MCP foundation and installable read-only server | Complete | `v0.1.0` |
-| [`v0.3`](docs/v0.3-native-plane-ux.md) | Native Plane discovery and context UX | Planned | `v0.2` |
+| [`v0.3`](docs/v0.3-native-plane-ux.md) | Native Plane discovery and context UX | Complete | `v0.2` |
 | [`v0.4`](docs/v0.4-safe-plane-execution.md) | Safe Plane mutations and execution workflows | Planned | `v0.3` |
 | [`v0.5`](docs/v0.5-operational-maturity.md) | Remote transport, security, observability, and maturity | Planned | `v0.4` |
 
@@ -32,7 +32,7 @@ Migrate protocol handling to the official MCP Python SDK, preserve the existing 
 
 ### 2. Native Plane UX
 
-Make common reads model-friendly: resolve names to UUIDs, provide project and work-item lookup/search, expose the main Plane metadata objects, and add read-only resources where they improve context loading.
+Make common reads model-friendly: resolve names to UUIDs, provide project and work-item lookup/search, expose the main Plane metadata objects, and add read-only resources where they improve context loading. The bounded v0.3 scope is complete; server-side aggregates and less-stable activity/attachment/link endpoints remain follow-up read work.
 
 ### 3. Safe Plane execution
 
@@ -67,10 +67,10 @@ The project is considered native when it is:
 
 ## Deferred decisions
 
-These decisions should be made during `v0.2` rather than assumed in later versions:
+These decisions were resolved during `v0.2` and v0.3 rather than assumed in later versions:
 
 - Whether the first production target is local stdio only or includes Streamable HTTP.
 - Which official MCP SDK major/minor version to pin.
 - Whether write operations are enabled by default or behind a configuration flag.
-- Whether resources and prompts belong in the first native release or the UX release.
+- Resources belong in the UX release; prompts remain deferred until a workflow needs them.
 - Which Plane API versions and self-hosted Plane releases must be supported.

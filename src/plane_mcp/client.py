@@ -12,8 +12,18 @@ from .config import PlaneSettings
 
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_PAGE_SIZE = 100
-SERVER_VERSION = "0.2.0"
+SERVER_VERSION = "0.3.0"
 USER_AGENT = f"plane-work-items-mcp/{SERVER_VERSION}"
+PROJECT_RESOURCE_PATHS = {
+    "cycles": "cycles/",
+    "labels": "labels/",
+    "members": "members/",
+    "milestones": "milestones/",
+    "modules": "modules/",
+    "releases": "releases/",
+    "states": "states/",
+    "work_item_types": "work-item-types/",
+}
 
 
 class PlaneApiError(RuntimeError):
@@ -139,10 +149,14 @@ class PlaneClient:
         expand: str | None = None,
         cursor: str | None = None,
         page_size: int = DEFAULT_PAGE_SIZE,
+        pql: str | None = None,
+        fields: str | None = None,
     ) -> dict[str, Any]:
         final_project_id = quote(project_id.strip(), safe="")
         parameters = pagination_parameters(cursor, page_size)
         parameters["expand"] = expand or "module,state,assignees,labels"
+        parameters["pql"] = pql
+        parameters["fields"] = fields
         return self._request(f"projects/{final_project_id}/work-items/", parameters)
 
     def list_work_item_comments(
@@ -158,3 +172,70 @@ class PlaneClient:
             f"projects/{final_project_id}/work-items/{final_work_item_id}/comments/",
             pagination_parameters(cursor, page_size),
         )
+
+    def get_project(self, project_id: str, expand: str | None = None) -> dict[str, Any]:
+        final_project_id = quote(project_id.strip(), safe="")
+        return self._request(f"projects/{final_project_id}/", {"expand": expand})
+
+    def get_work_item(
+        self,
+        project_id: str,
+        work_item_id: str,
+        expand: str | None = None,
+        fields: str | None = None,
+    ) -> dict[str, Any]:
+        final_project_id = quote(project_id.strip(), safe="")
+        final_work_item_id = quote(work_item_id.strip(), safe="")
+        return self._request(
+            f"projects/{final_project_id}/work-items/{final_work_item_id}/",
+            {
+                "expand": expand or "module,state,assignees,labels,type,project",
+                "fields": fields,
+            },
+        )
+
+    def search_work_items(
+        self,
+        query: str,
+        project_id: str | None = None,
+        cursor: str | None = None,
+        page_size: int = DEFAULT_PAGE_SIZE,
+        expand: str | None = None,
+        fields: str | None = None,
+        pql: str | None = None,
+    ) -> dict[str, Any]:
+        parameters = pagination_parameters(cursor, page_size)
+        parameters.update(
+            {
+                "search": query,
+                "project": project_id,
+                "expand": expand or "module,state,assignees,labels,type,project",
+                "fields": fields,
+                "pql": pql,
+            }
+        )
+        return self._request("work-items/search/", parameters)
+
+    def list_project_resources(
+        self,
+        project_id: str,
+        resource: str,
+        cursor: str | None = None,
+        page_size: int = DEFAULT_PAGE_SIZE,
+    ) -> dict[str, Any]:
+        if resource not in PROJECT_RESOURCE_PATHS:
+            supported_resources = ", ".join(sorted(PROJECT_RESOURCE_PATHS))
+            raise ValueError(f"resource must be one of: {supported_resources}.")
+
+        final_project_id = quote(project_id.strip(), safe="")
+        return self._request(
+            f"projects/{final_project_id}/{PROJECT_RESOURCE_PATHS[resource]}",
+            pagination_parameters(cursor, page_size),
+        )
+
+    def list_workspace_members(
+        self,
+        cursor: str | None = None,
+        page_size: int = DEFAULT_PAGE_SIZE,
+    ) -> dict[str, Any]:
+        return self._request("members/", pagination_parameters(cursor, page_size))
