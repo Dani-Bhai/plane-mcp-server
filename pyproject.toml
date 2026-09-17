@@ -1,6 +1,6 @@
 [project]
 name = "plane-work-items-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "Native read-only MCP server for Plane workspaces"
 requires-python = ">=3.10"
 dependencies = [
